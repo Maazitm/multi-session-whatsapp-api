@@ -9,20 +9,38 @@
  * State lives in one object; every render is a pure function of it, so an SSE
  * event and a manual refresh cannot disagree.
  */
-
 (() => {
   'use strict';
+
+  // ---------------------------------------------
+  // LOGIN CHECK (add this)
+  // If not logged in, go to login page
+  // ---------------------------------------------
+  if (localStorage.getItem('wa.auth') !== '1') {
+    window.location.replace('/login.html');
+    return;
+  }
+
+  const logoutUserBtn = document.getElementById('logoutUserBtn');
+if (logoutUserBtn) {
+  logoutUserBtn.addEventListener('click', () => {
+    localStorage.removeItem('wa.auth');
+    localStorage.removeItem('wa.authEmail');
+    window.location.replace('/login.html');
+  });
+}
+  
 
   /* --------------------------------------------------------------------- */
   /* State                                                                  */
   /* --------------------------------------------------------------------- */
 
   const state = {
-    sessions: new Map(), // sessionId -> session view
+    sessions: new Map(),
     activeId: null,
     apiKey: localStorage.getItem('wa.apiKey') || '',
     config: { authRequired: false, otpTtlMs: 300000 },
-    sentOtp: null, // { phone, sessionId, expiresAt }
+    sentOtp: null,
     eventSource: null,
     pollTimer: null,
   };

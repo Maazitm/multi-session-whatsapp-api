@@ -484,46 +484,45 @@ export class SessionManager extends EventEmitter {
 async restoreSavedSessions() {
   try {
     if (!fs.existsSync(this.dataPath)) {
-      console.log('[restore] no auth folder found');
+      console.log('[restore] auth folder missing:', this.dataPath);
       return;
     }
 
     const entries = fs.readdirSync(this.dataPath, { withFileTypes: true });
-    const sessionIds = [];
+    const ids = [];
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
 
-      // Folder names look like: session-main
+      // LocalAuth folder format: session-<id>
       if (entry.name.startsWith('session-')) {
-        const id = entry.name.replace(/^session-/, '');
-        if (id) sessionIds.push(id);
+        const id = entry.name.slice('session-'.length);
+        if (id) ids.push(id);
       }
     }
 
-    if (sessionIds.length === 0) {
-      console.log('[restore] no saved sessions found');
+    if (ids.length === 0) {
+      console.log('[restore] no saved sessions in', this.dataPath);
       return;
     }
 
-    console.log(`[restore] found sessions: ${sessionIds.join(', ')}`);
+    console.log('[restore] saved sessions found:', ids.join(', '));
 
-    for (const id of sessionIds) {
+    for (const id of ids) {
+      if (this.sessions.has(id)) continue;
+
       try {
-        if (this.sessions.has(id)) continue;
-        console.log(`[restore] starting session: ${id}`);
+        console.log(`[restore] reconnecting "${id}"...`);
         await this.createSession(id);
       } catch (err) {
-        console.warn(`[restore] failed for "${id}": ${err.message}`);
+        console.warn(`[restore] "${id}" failed:`, err.message);
       }
     }
   } catch (err) {
-    console.error('[restore] error:', err.message);
+    console.error('[restore] fatal:', err.message);
   }
 }
 }
-
-
 
 /** Shared instance used by `server.js`. */
 export const sessionManager = new SessionManager();
