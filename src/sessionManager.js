@@ -477,7 +477,53 @@ export class SessionManager extends EventEmitter {
       this.sessions.delete(sessionId);
     }
   }
+  /**
+ * Restore sessions saved on disk (LocalAuth folders) after server restart.
+ * LocalAuth stores each session under: {dataPath}/session-{clientId}
+ */
+async restoreSavedSessions() {
+  try {
+    if (!fs.existsSync(this.dataPath)) {
+      console.log('[restore] no auth folder found');
+      return;
+    }
+
+    const entries = fs.readdirSync(this.dataPath, { withFileTypes: true });
+    const sessionIds = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+
+      // Folder names look like: session-main
+      if (entry.name.startsWith('session-')) {
+        const id = entry.name.replace(/^session-/, '');
+        if (id) sessionIds.push(id);
+      }
+    }
+
+    if (sessionIds.length === 0) {
+      console.log('[restore] no saved sessions found');
+      return;
+    }
+
+    console.log(`[restore] found sessions: ${sessionIds.join(', ')}`);
+
+    for (const id of sessionIds) {
+      try {
+        if (this.sessions.has(id)) continue;
+        console.log(`[restore] starting session: ${id}`);
+        await this.createSession(id);
+      } catch (err) {
+        console.warn(`[restore] failed for "${id}": ${err.message}`);
+      }
+    }
+  } catch (err) {
+    console.error('[restore] error:', err.message);
+  }
 }
+}
+
+
 
 /** Shared instance used by `server.js`. */
 export const sessionManager = new SessionManager();

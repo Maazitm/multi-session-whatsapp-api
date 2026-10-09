@@ -309,8 +309,11 @@ app.use((err, req, res, next) => {
 /* -------------------------------------------------------------------------- */
 /* Bootstrap                                                                  */
 /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Bootstrap                                                                  */
+/* -------------------------------------------------------------------------- */
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log('============================================================');
   console.log(`🚀 WhatsApp Gateway listening on http://localhost:${PORT}`);
   console.log(`📂 Static frontend: ${PUBLIC_DIR}`);
@@ -321,7 +324,15 @@ const server = app.listen(PORT, HOST, () => {
     console.log('⚠️  No GATEWAY_API_KEY set — message routes are OPEN. Set it before exposing this host.');
   }
   console.log('============================================================');
+
+  // Restore previously linked WhatsApp sessions after restart
+  try {
+    await sessionManager.restoreSavedSessions();
+  } catch (err) {
+    console.error('[server] session restore failed:', err.message);
+  }
 });
+
 
 /** Close browsers then the HTTP server so Chromium never leaks on restart. */
 async function shutdown(signal) {
